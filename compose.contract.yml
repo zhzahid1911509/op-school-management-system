@@ -1,29 +1,60 @@
 name: admission-contract
+x-api: &api
+  build: ./backend
+  depends_on:
+    db:
+      condition: service_healthy
+x-api-env: &api-env
+  ConnectionStrings__Admission: Host=db;Database=admission;Username=postgres;Password=contract
+  HOLD_DURATION_SECONDS: 15
+  FrontendOrigin: http://frontend
 services:
   db:
     image: postgres:16-alpine
     environment:
       POSTGRES_PASSWORD: contract
       POSTGRES_DB: admission
-    tmpfs:
-      - /var/lib/postgresql/data
+      POSTGRES_USER: postgres
+    volumes:
+      - contract-data:/var/lib/postgresql/data
+      - ./tests:/checks:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d admission"]
       interval: 2s
       timeout: 3s
       retries: 30
   backend:
-    build: ./backend
-    depends_on:
-      db:
-        condition: service_healthy
+    <<: *api
     environment:
-      ConnectionStrings__Admission: Host=db;Database=admission;Username=postgres;Password=contract
-      HOLD_DURATION_SECONDS: 15
+      <<: *api-env
       ASPNETCORE_HTTP_PORTS: 8080
+  replica:
+    <<: *api
+    environment:
+      <<: *api-env
+      ASPNETCORE_HTTP_PORTS: 8081
   contract:
     image: python:3.12-alpine
-    depends_on: [backend]
+    depends_on: [backend, replica]
+    environment:
+      SECOND_API_URL: http://replica:8081
     volumes:
-      - ./tests/http_contract.py:/suite/http_contract.py:ro
+      - ./tests:/suite:ro
+      - contract-fixtures:/fixtures
     command: ["python", "/suite/http_contract.py"]
+  frontend:
+    profiles: [browser]
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://backend:8080
+  browser:
+    profiles: [browser]
+    build:
+      context: ./tests
+      dockerfile: Browser.Dockerfile
+    depends_on: [backend, frontend]
+    shm_size: 1gb
+volumes:
+  contract-data:
+  contract-fixtures:

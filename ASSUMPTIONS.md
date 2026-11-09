@@ -12,3 +12,7 @@
 
 - The single-hold status endpoint uses the hold UUID as specified in the assignment and omits the student number. Student history and all hold mutations require exactly one X-Student-Id header with 17 ASCII digits.
 - Class names are trimmed and may repeat. UUIDs distinguish classes. Student history includes terminal records, ordered by descending expiry time with UUID as a stable tie-breaker.
+
+## Two API processes
+
+The contract stack runs backend on port 8080 and replica on 8081, both against the same PostgreSQL database. The class row is the serialization point. After the transaction acquires its lock, a fresh read sees committed changes from the preceding request. Expiry comparisons use database time after the lock is acquired. Confirmation changes the existing hold; retries find the same terminal record. The expiry sweep uses the same lock order and skips busy classes. These rules apply regardless of which process handled the request.

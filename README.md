@@ -1,89 +1,66 @@
 # School Admission System
 
-Milestone 4 connects the React admin and guardian workspaces to all eight admission API endpoints.
+Guardians can reserve a seat in a class and shift, pay the simulated admission fee, cancel a hold, and view application history. The admin workspace creates classes and sets capacity. The React UI uses an ASP.NET Core 8 JSON API backed by PostgreSQL 16.
 
-## Run on Windows, macOS, or Linux
+## Build and run
 
-1. Install Docker with the Compose v2 plugin. On Windows start Docker Desktop using Linux containers. Check `docker version` and `docker compose version`. The first build needs internet access for images and packages.
-2. Extract the ZIP and open a terminal in the school-admission folder containing docker-compose.yml. Keep ports 3000 and 8080 available.
-3. Run `docker compose up --build`. This builds the release API and static UI, starts PostgreSQL and installs the reservation tables, functions, and views. Leave the terminal open. For later runs use `docker compose up`.
-4. Open http://localhost:3000. Choose **School admin** to create a class, then **Admissions** to select a student and apply. The operational health endpoint is http://localhost:8080/health.
-5. To stop, press Ctrl+C and run `docker compose down`. The database volume survives a normal down/up cycle.
+1. Install Docker with Compose v2. On Windows, start Docker Desktop using Linux containers. The first build needs internet access for images and packages.
+2. Open a terminal in the project folder containing docker-compose.yml. Make ports 3000 and 8080 available.
+3. Run `docker compose up`. To rebuild after updating source, run `docker compose up --build`. For a detached run add `-d`. To build without starting, run `docker compose build`.
+4. Open http://localhost:3000. The API is at http://localhost:8080 and its database health check is at http://localhost:8080/health.
+5. Stop with `docker compose down`. The named PostgreSQL volume survives down/up when you use the same project name. Inspect startup with `docker compose ps` and `docker compose logs db backend frontend`.
 
-## Build and verify
+## Try the workflow
 
-Build without starting with `docker compose build`. For a detached run use `docker compose up -d --build`. Inspect services with `docker compose ps` and errors with `docker compose logs db backend frontend`. If the page loads while the backend is still starting, click **Retry** or wait for the next availability update.
+In **School admin**, create **Class 6 – Morning Shift** with one seat. In **Admissions**, enter `00000000000000001`, choose **Use this student**, and click **Apply**. Refresh or reopen the page to recover the hold. **Pay admission fee** converts it to a confirmed admission. To test cancellation, cancel before confirming, then reapply.
 
-Inspect schema initialization with:
-
-```sh
-docker compose exec db psql -U admission -d admission -c "SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'admission';"
-```
-
-The expected output contains one row named admission. The health endpoint should return HTTP 200 while PostgreSQL is reachable. Run `docker compose stop db` and retry the UI to exercise the unavailable state, then `docker compose start db` and retry once the database is ready. These are infrastructure smoke checks. Database lifecycle and concurrency checks are described below.
+For a short expiry demo, place `HOLD_DURATION_SECONDS=10` in a root .env file and run `docker compose up -d --build`. A new unpaid hold should expire, disable payment and release the seat. Seat counts refresh every few seconds. The default duration is 600 seconds.
 
 ## Configuration
 
-The defaults work without a configuration file. To override them, create a .env beside docker-compose.yml and set the relevant variables.
-
-| Variable | Default or purpose |
+| Variable | Use |
 |---|---|
-| HOLD_DURATION_SECONDS | 600, must be positive. Sets the expiry time of new holds. |
-| POSTGRES_PASSWORD | admission_local, for local evaluation. Set before creating the volume. |
-| ADMISSION_CONNECTION_STRING | Optional complete Npgsql connection string. Defaults to the bundled db service. |
-| VITE_API_URL | Browser-accessible API base URL, default http://localhost:8080. Rebuild the frontend after changing it. |
-| FRONTEND_ORIGIN | Allowed browser origin, default http://localhost:3000. Match the exact origin used in the browser. |
+| HOLD_DURATION_SECONDS | Positive number of seconds for new holds, default 600. |
+| VITE_API_URL | Browser-accessible API origin, default http://localhost:8080. Rebuild the frontend after changing it. |
+| FRONTEND_ORIGIN | Allowed browser origin, default http://localhost:3000. |
+| POSTGRES_PASSWORD | Local database password. Set before first volume initialization. |
+| ADMISSION_CONNECTION_STRING | Optional complete Npgsql connection string, default uses the bundled database. |
 
-See docs/FEATURES.md for the file-by-file implementation. The archive includes the local main branch and incremental commits. Use `git log --oneline` to inspect them.
+## Run acceptance tests
 
+On Windows with Docker Desktop running, run from the project root:
 
-## Run milestone 2 checks
-
-Start the stack with `docker compose up -d --build` and wait for the health endpoint to report ready. In PowerShell, from the project root:
-
-```powershell
-Get-Content -Raw tests/reservations.sql | docker compose exec -T db psql -X -v ON_ERROR_STOP=1 -U admission -d admission
-Get-Content -Raw tests/race.sh | docker compose exec -T db sh
+```cmd
+tests\acceptance.cmd
 ```
 
-On Linux or macOS:
+The script creates an isolated Compose project with two API processes, separate ports, one database, and a test frontend. It runs six frontend component tests, eight HTTP tests, SQL lifecycle checks, autonomous worker expiry, a real Chromium admission flow, and a database restart check. It stops at the first failure and prints diagnostic and cleanup commands. The test stack has no published host ports. Its database volume is removed after success.
+
+On Linux or macOS use the following sequence. Run commands in order and inspect any failure before continuing.
 
 ```sh
-docker compose exec -T db psql -X -v ON_ERROR_STOP=1 -U admission -d admission < tests/reservations.sql
-docker compose exec -T db sh < tests/race.sh
+dc() { docker compose -p school-admission-acceptance -f compose.contract.yml --profile browser "$@"; }
+docker build --target build -t school-admission-ui-tests ./frontend
+docker run --rm school-admission-ui-tests npm test
+dc build backend replica frontend browser
+dc up -d db backend replica frontend
+dc run --rm contract
+dc exec -T db psql -X -U postgres -d admission -v ON_ERROR_STOP=1 -f /checks/reservations.sql
+dc exec -T db sh /checks/worker.sh
+dc run --rm browser
+dc run --rm contract python /suite/persistence.py seed
+dc down
+dc up -d backend replica
+dc run --rm contract python /suite/persistence.py verify
+dc down -v
 ```
 
-The lifecycle check ends with ROLLBACK. The race check expects one winner and nineteen conflicts. Both clean up their fixtures. These tests exercise the database layer. HTTP contract tests follow the endpoint implementation.
+For the frontend alone with Node.js 22, run `npm ci`, `npm run build`, and `npm test` inside frontend. The eight HTTP tests run against real services with a 15-second hold duration. The component tests use simulated API responses.
 
-To verify the live worker, repeat the race-script command above using `tests/worker.sh` in place of `tests/race.sh`. This creates a one-second hold, waits up to fifteen seconds, and reads the stored status to confirm automatic expiry.
+## Implementation and submission
 
-Verification during development: the migration ran twice and the transaction-based lifecycle assertions passed in PGlite. The native multi-connection race and live worker checks require the running Docker stack.
+- docs/FEATURES.md explains the features and source files.
+- ASSUMPTIONS.md records the identity, expiry, concurrency and deployment decisions.
+- AI_USAGE.md describes AI contributions and corrections.
 
-## Verify the HTTP API
-
-Run the following from the folder containing compose.contract.yml. Docker builds the backend and runs five HTTP tests against a separate PostgreSQL database with a 15-second hold duration. The test stack uses no host ports or application data volumes.
-
-```sh
-docker compose -f compose.contract.yml up --build --abort-on-container-exit --exit-code-from contract
-docker compose -f compose.contract.yml down
-```
-
-Expected result: five tests pass and the contract container exits with code 0. To inspect failures, run `docker compose -f compose.contract.yml logs backend contract` before cleanup. Run `docker compose up -d --build` for the normal application, then open http://localhost:8080/classes. An empty array is valid on a fresh installation.
-
-## Verify milestone 4
-
-1. In School admin, create Class 6 – Morning Shift with one seat.
-2. In Admissions, enter a 17-digit example such as 00000000000000001 and choose Use this student. Apply and look for HELD under My applications. Refresh or reopen the site on the same browser and origin. The application and countdown should return.
-3. Cancel. Once the seat reopens, apply again and choose Pay admission fee. Check for CONFIRMED and one confirmed seat. Check availability and Check application status fetch individual records from the API.
-4. For an expiry demonstration, set HOLD_DURATION_SECONDS=10 in the root .env file, then run docker compose up -d --build. Create a second class and apply. After ten seconds payment disables, the status reads EXPIRED, and the available count updates on the next poll. The duration applies to newly created holds.
-
-### Frontend component tests
-
-From the project root with Docker:
-
-```sh
-docker build --target build -t admission-ui-tests ./frontend
-docker run --rm admission-ui-tests npm test
-```
-
-Alternatively, with Node.js 22 installed, run `npm ci`, `npm run build`, and `npm test` inside frontend. These component checks use simulated API responses. Use the HTTP suite above to exercise PostgreSQL and the real backend.
+For a new checkout from GitHub, run the normal Docker command and then the acceptance script. After the tests pass, push the incremental commits to your public repository and submit its URL through the assignment form before the deadline. Record the submitted commit using `git rev-parse HEAD`. Keep the confidential assignment PDF out of the repository.

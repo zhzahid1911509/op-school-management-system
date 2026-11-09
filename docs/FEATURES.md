@@ -13,7 +13,7 @@
 
 ## Request flow
 
-Opening the frontend triggers GET /health. The API runs SELECT 1 through its PostgreSQL connection pool and returns readiness and the configured hold duration. A connection failure produces a visible message. The check can be repeated after service recovery. No student information is collected in this milestone.
+The original milestone 1 status screen called GET /health. The current admissions screen fetches the class list on startup. The API runs SELECT 1 through its PostgreSQL connection pool and returns readiness and the configured hold duration. A connection failure produces a visible message. The check can be repeated after service recovery. No student information is collected in this milestone.
 
 ## Milestone 2 implementation
 
@@ -28,7 +28,7 @@ Database/reservations.sql under backend is copied into the published API. Startu
 | Read status and counts | application_status and class_availability evaluate the deadline at query time. An expired seat appears available even before the next sweep. |
 | Validation | tests/reservations.sql checks lifecycle rules. tests/race.sh sends 20 independent transactions for one seat. |
 
-On restart, overdue rows are eligible for the first sweep. The API's future HTTP handlers can map database error codes A0400, A0403, A0404, and A0409 to the corresponding client statuses.
+On restart, overdue rows are eligible for the first sweep. The HTTP handlers map database error codes A0400, A0403, A0404, and A0409 to the corresponding client statuses.
 
 ## Milestone 3 HTTP API
 
@@ -62,3 +62,16 @@ compose.contract.yml runs the API with a disposable database and a Python standa
 The selected 17-digit student number is stored as text. Each selection creates a fresh workspace and fetches that student's history. Admission records remain in PostgreSQL. The frontend polls classes and history three seconds after each poll completes, refreshes on focus and after every mutation, and ignores superseded responses. The countdown derives from the UTC deadline and disables payment locally at expiry. The backend checks eligibility again when processing each request.
 
 The interface shows server conflicts even when another guardian claims the final seat between refreshes. Payment simulates the assignment's successful fee payment by calling the confirmation endpoint.
+
+## Final acceptance
+
+| Check | Expected observation |
+|---|---|
+| Two API processes, 50 simultaneous students, five seats | Exactly five 201 responses and 45 conflicts. Both processes report five held seats. |
+| Duplicate student and concurrent confirmation retries | One active hold across both processes, then one confirmed seat. |
+| Confirmation at expiry while another applicant requests the seat | Either the original payment succeeds or the competing applicant obtains the released seat. Final occupied count is one. |
+| Autonomous worker | A direct read of the stored hold shows EXPIRED after its deadline without any admission API request. |
+| Chromium | Admin creates a class, guardian applies, refreshes, pays and sees a confirmed seat in the UI. |
+| Compose persistence | The same class UUID, hold UUID, confirmed count and history are recovered after down/up. |
+
+The Windows runner tests/acceptance.cmd executes these checks in an isolated project. tests/http_contract.py exercises HTTP concurrency. tests/browser_flow.py uses Chromium. tests/persistence.py stores the fixture identifiers independently of PostgreSQL and reads them back after the database and API containers have been recreated.

@@ -51,7 +51,7 @@ internal static class AdmissionEndpoints
 
     private static async Task<IResult> Create(CreateClass input, NpgsqlDataSource db, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(input.Name) || input.TotalSeats <= 0)
+        if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Contains('\0') || input.TotalSeats <= 0)
             return Results.BadRequest(new { error = "Provide a class name and a positive seat count." });
         var name = input.Name.Trim();
         await using var cmd = db.CreateCommand("""
