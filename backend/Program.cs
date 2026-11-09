@@ -1,6 +1,7 @@
 using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
 var connectionString = builder.Configuration.GetConnectionString("Admission")
     ?? throw new InvalidOperationException("Set ConnectionStrings__Admission.");
 var duration = builder.Configuration.GetValue("HOLD_DURATION_SECONDS", 600);
@@ -15,6 +16,8 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
 
 var app = builder.Build();
 app.UseCors();
+app.Use(ApiErrors.Handle);
+app.MapAdmissions(duration);
 var database = app.Services.GetRequiredService<NpgsqlDataSource>();
 var migration = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Database", "reservations.sql"));
 await using (var setup = database.CreateCommand(migration))

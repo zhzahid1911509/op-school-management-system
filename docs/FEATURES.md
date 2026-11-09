@@ -29,3 +29,22 @@ Database/reservations.sql under backend is copied into the published API. Startu
 | Validation | tests/reservations.sql checks lifecycle rules. tests/race.sh sends 20 independent transactions for one seat. |
 
 On restart, overdue rows are eligible for the first sweep. The API's future HTTP handlers can map database error codes A0400, A0403, A0404, and A0409 to the corresponding client statuses.
+
+## Milestone 3 HTTP API
+
+AdmissionEndpoints.cs maps the eight routes below. All SQL uses bound parameters. Class reads use class_availability and hold reads use application_status so expiry is visible between worker sweeps. Reservation passes the configured HOLD_DURATION_SECONDS into the same database function exercised by milestone 2. Dates are serialized in UTC.
+
+| Method and path | Student header | Success |
+|---|---|---|
+| POST /classes | — | 201 with id, name, totalSeats. The body accepts name and totalSeats. |
+| GET /classes | — | 200 with an array of class summaries. |
+| GET /classes/{classId} | — | 200 with id, name, totalSeats, heldSeats, confirmedSeats and availableSeats. |
+| POST /classes/{classId}/holds | Required | 201 with holdId, classId, studentId, status and expiresAt. Full class or duplicate active admission returns 409. |
+| GET /holds/{holdId} | — | 200 with holdId, classId, status and expiresAt. |
+| POST /holds/{holdId}/confirm | Required | 200 with holdId and status. A successful replay returns CONFIRMED. |
+| DELETE /holds/{holdId} | Required | 204 with an empty body. |
+| GET /me/holds | Required | 200 with an array of holdId, classId, className, status and expiresAt for this student. |
+
+ApiErrors.cs translates malformed inputs and expected PostgreSQL domain errors to JSON with an error field. Invalid fields, identifiers or headers return 400, another owner's mutation returns 403, missing resources return 404, and expiry, full classes and incompatible transitions return 409. A transient database failure returns 503.
+
+compose.contract.yml runs the API with a disposable database and a Python standard-library HTTP client. See README.md for test commands.

@@ -1,0 +1,29 @@
+name: admission-contract
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: contract
+      POSTGRES_DB: admission
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d admission"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Admission: Host=db;Database=admission;Username=postgres;Password=contract
+      HOLD_DURATION_SECONDS: 15
+      ASPNETCORE_HTTP_PORTS: 8080
+  contract:
+    image: python:3.12-alpine
+    depends_on: [backend]
+    volumes:
+      - ./tests/http_contract.py:/suite/http_contract.py:ro
+    command: ["python", "/suite/http_contract.py"]

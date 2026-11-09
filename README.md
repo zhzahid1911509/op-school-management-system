@@ -1,6 +1,6 @@
 # School Admission System
 
-Milestone 2 adds the transactional PostgreSQL reservation lifecycle and automatic expiry. The frontend still displays service health. The admission HTTP endpoints follow in milestone 3.
+Milestone 3 exposes all eight admission HTTP endpoints. The frontend currently shows service health. The admin and guardian screens are planned for milestone 4.
 
 ## Run on Windows, macOS, or Linux
 
@@ -58,3 +58,14 @@ The lifecycle check ends with ROLLBACK. The race check expects one winner and ni
 To verify the live worker, repeat the race-script command above using `tests/worker.sh` in place of `tests/race.sh`. This creates a one-second hold, waits up to fifteen seconds, and reads the stored status to confirm automatic expiry.
 
 Verification during development: the migration ran twice and the transaction-based lifecycle assertions passed in PGlite. The native multi-connection race and live worker checks require the running Docker stack.
+
+## Verify the HTTP API
+
+Run the following from the folder containing compose.contract.yml. Docker builds the backend and runs five HTTP tests against a separate PostgreSQL database with a 15-second hold duration. The test stack uses no host ports or application data volumes.
+
+```sh
+docker compose -f compose.contract.yml up --build --abort-on-container-exit --exit-code-from contract
+docker compose -f compose.contract.yml down
+```
+
+Expected result: five tests pass and the contract container exits with code 0. To inspect failures, run `docker compose -f compose.contract.yml logs backend contract` before cleanup. Run `docker compose up -d --build` for the normal application, then open http://localhost:8080/classes. An empty array is valid on a fresh installation.
