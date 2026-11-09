@@ -74,4 +74,4 @@ The interface shows server conflicts even when another guardian claims the final
 | Chromium | Admin creates a class, guardian applies, refreshes, pays and sees a confirmed seat in the UI. |
 | Compose persistence | The same class UUID, hold UUID, confirmed count and history are recovered after down/up. |
 
-The Windows runner tests/acceptance.cmd executes these checks in an isolated project. tests/http_contract.py exercises HTTP concurrency. tests/browser_flow.py uses Chromium. tests/persistence.py stores the fixture identifiers independently of PostgreSQL and reads them back after the database and API containers have been recreated.
+The Windows runner tests/acceptance.cmd executes these checks in an isolated project. tests/http_contract.py exercises HTTP concurrency. tests/browser/flow.mjs uses Chromium. tests/persistence.py stores the fixture identifiers independently of PostgreSQL and reads them back after the database and API containers have been recreated.

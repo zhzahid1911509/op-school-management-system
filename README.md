@@ -64,3 +64,14 @@ For the frontend alone with Node.js 22, run `npm ci`, `npm run build`, and `npm 
 - AI_USAGE.md describes AI contributions and corrections.
 
 For a new checkout from GitHub, run the normal Docker command and then the acceptance script. After the tests pass, push the incremental commits to your public repository and submit its URL through the assignment form before the deadline. Record the submitted commit using `git rev-parse HEAD`. Keep the confidential assignment PDF out of the repository.
+
+### Browser image build on Windows
+
+From PowerShell in the repository root, use the following to build the Chromium test image separately with plain logs, then run acceptance:
+
+```powershell
+docker compose -f compose.contract.yml --profile browser --progress plain build browser
+if ($LASTEXITCODE -eq 0) { .\tests\acceptance.cmd }
+```
+
+The test driver is pinned in tests/browser/package-lock.json and uses the Chromium installed in the Playwright image. The build needs access to the Docker image registries and registry.npmjs.org. A slow network may pause between Docker output lines. The normal runner builds the browser driver after the HTTP and database checks and reuses cached layers.
