@@ -8,6 +8,7 @@ if (duration <= 0)
     throw new InvalidOperationException("HOLD_DURATION_SECONDS must be a positive integer.");
 
 builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
+builder.Services.AddHostedService<ExpiryWorker>();
 var origin = builder.Configuration["FrontendOrigin"] ?? "http://localhost:3000";
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
     policy.WithOrigins(origin).AllowAnyHeader().AllowAnyMethod()));
@@ -15,7 +16,8 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
 var app = builder.Build();
 app.UseCors();
 var database = app.Services.GetRequiredService<NpgsqlDataSource>();
-await using (var setup = database.CreateCommand("CREATE SCHEMA IF NOT EXISTS admission"))
+var migration = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Database", "reservations.sql"));
+await using (var setup = database.CreateCommand(migration))
     await setup.ExecuteNonQueryAsync();
 
 app.MapGet("/health", async (CancellationToken cancellation) =>
