@@ -1,0 +1,8 @@
+:root { font-family: "DM Sans", system-ui, sans-serif; color: #173c37; background: #f3f6f2; }
+main { max-width: 44rem; margin: 12vh auto; padding: 0 1.25rem; }
+h1 { font-size: clamp(2rem, 6vw, 3.7rem); line-height: 1.05; letter-spacing: -.045em; }
+section { background: white; border: 1px solid #cddbd3; padding: 1.6rem; border-radius: .75rem; }
+h2 { margin-top: 0; }
+p { line-height: 1.6; }
+button { background: #20594d; color: white; border: 0; border-radius: .4rem; font: inherit; padding: .65rem 1rem; cursor: pointer; }
+button:focus-visible { outline: 3px solid #df9b31; outline-offset: 3px; }
