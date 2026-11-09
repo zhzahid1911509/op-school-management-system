@@ -2,10 +2,21 @@
   "name": "school-admission-ui",
   "version": "0.1.0",
   "private": true,
-  "scripts": { "build": "tsc --noEmit && vite build" },
-  "dependencies": { "react": "18.3.1", "react-dom": "18.3.1" },
+  "scripts": {
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run --environment jsdom"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
   "devDependencies": {
-    "@types/react": "18.3.12", "@types/react-dom": "18.3.1",
-    "typescript": "5.7.2", "vite": "6.4.1"
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "jsdom": "^26.1.0",
+    "typescript": "5.7.2",
+    "vite": "6.4.1",
+    "vitest": "^3.2.6"
   }
 }

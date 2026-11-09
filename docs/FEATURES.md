@@ -48,3 +48,17 @@ AdmissionEndpoints.cs maps the eight routes below. All SQL uses bound parameters
 ApiErrors.cs translates malformed inputs and expected PostgreSQL domain errors to JSON with an error field. Invalid fields, identifiers or headers return 400, another owner's mutation returns 403, missing resources return 404, and expiry, full classes and incompatible transitions return 409. A transient database failure returns 503.
 
 compose.contract.yml runs the API with a disposable database and a Python standard-library HTTP client. See README.md for test commands.
+
+## Milestone 4 browser workflows
+
+| Source | Responsibility |
+|---|---|
+| frontend/main.tsx | Mounts the React application. |
+| frontend/App.tsx | Student selection, admin class form, seat counts, guardian actions, history and countdowns. |
+| frontend/api.ts | Uses the configured API URL, attaches student identity to scoped requests, handles JSON and empty 204 responses, and presents request or network errors. |
+| frontend/style.css | Responsive forms and class cards, readable status messages, keyboard focus and disabled actions. |
+| frontend/tests/App.test.tsx | Exercises the rendered UI with simulated API responses for payment, cancellation, reopening, expiry, class creation, conflict recovery, polling and identity switching. |
+
+The selected 17-digit student number is stored as text. Each selection creates a fresh workspace and fetches that student's history. Admission records remain in PostgreSQL. The frontend polls classes and history three seconds after each poll completes, refreshes on focus and after every mutation, and ignores superseded responses. The countdown derives from the UTC deadline and disables payment locally at expiry. The backend checks eligibility again when processing each request.
+
+The interface shows server conflicts even when another guardian claims the final seat between refreshes. Payment simulates the assignment's successful fee payment by calling the confirmation endpoint.

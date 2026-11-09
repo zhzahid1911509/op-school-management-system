@@ -1,18 +1,18 @@
 # School Admission System
 
-Milestone 3 exposes all eight admission HTTP endpoints. The frontend currently shows service health. The admin and guardian screens are planned for milestone 4.
+Milestone 4 connects the React admin and guardian workspaces to all eight admission API endpoints.
 
 ## Run on Windows, macOS, or Linux
 
 1. Install Docker with the Compose v2 plugin. On Windows start Docker Desktop using Linux containers. Check `docker version` and `docker compose version`. The first build needs internet access for images and packages.
 2. Extract the ZIP and open a terminal in the school-admission folder containing docker-compose.yml. Keep ports 3000 and 8080 available.
 3. Run `docker compose up --build`. This builds the release API and static UI, starts PostgreSQL and installs the reservation tables, functions, and views. Leave the terminal open. For later runs use `docker compose up`.
-4. Open http://localhost:3000 and press **Check connection**. The screen should report a connected API and PostgreSQL, and the configured duration (600 seconds by default). Visit http://localhost:8080/health to see the same result as JSON.
+4. Open http://localhost:3000. Choose **School admin** to create a class, then **Admissions** to select a student and apply. The operational health endpoint is http://localhost:8080/health.
 5. To stop, press Ctrl+C and run `docker compose down`. The database volume survives a normal down/up cycle.
 
 ## Build and verify
 
-Build without starting with `docker compose build`. For a detached run use `docker compose up -d --build`. Inspect services with `docker compose ps` and errors with `docker compose logs db backend frontend`. If the page loads while the backend is still starting, click **Check connection** again.
+Build without starting with `docker compose build`. For a detached run use `docker compose up -d --build`. Inspect services with `docker compose ps` and errors with `docker compose logs db backend frontend`. If the page loads while the backend is still starting, click **Retry** or wait for the next availability update.
 
 Inspect schema initialization with:
 
@@ -28,7 +28,7 @@ The defaults work without a configuration file. To override them, create a .env 
 
 | Variable | Default or purpose |
 |---|---|
-| HOLD_DURATION_SECONDS | 600, must be positive. Reported on the status screen and reserved for the hold workflow. |
+| HOLD_DURATION_SECONDS | 600, must be positive. Sets the expiry time of new holds. |
 | POSTGRES_PASSWORD | admission_local, for local evaluation. Set before creating the volume. |
 | ADMISSION_CONNECTION_STRING | Optional complete Npgsql connection string. Defaults to the bundled db service. |
 | VITE_API_URL | Browser-accessible API base URL, default http://localhost:8080. Rebuild the frontend after changing it. |
@@ -69,3 +69,21 @@ docker compose -f compose.contract.yml down
 ```
 
 Expected result: five tests pass and the contract container exits with code 0. To inspect failures, run `docker compose -f compose.contract.yml logs backend contract` before cleanup. Run `docker compose up -d --build` for the normal application, then open http://localhost:8080/classes. An empty array is valid on a fresh installation.
+
+## Verify milestone 4
+
+1. In School admin, create Class 6 – Morning Shift with one seat.
+2. In Admissions, enter a 17-digit example such as 00000000000000001 and choose Use this student. Apply and look for HELD under My applications. Refresh or reopen the site on the same browser and origin. The application and countdown should return.
+3. Cancel. Once the seat reopens, apply again and choose Pay admission fee. Check for CONFIRMED and one confirmed seat. Check availability and Check application status fetch individual records from the API.
+4. For an expiry demonstration, set HOLD_DURATION_SECONDS=10 in the root .env file, then run docker compose up -d --build. Create a second class and apply. After ten seconds payment disables, the status reads EXPIRED, and the available count updates on the next poll. The duration applies to newly created holds.
+
+### Frontend component tests
+
+From the project root with Docker:
+
+```sh
+docker build --target build -t admission-ui-tests ./frontend
+docker run --rm admission-ui-tests npm test
+```
+
+Alternatively, with Node.js 22 installed, run `npm ci`, `npm run build`, and `npm test` inside frontend. These component checks use simulated API responses. Use the HTTP suite above to exercise PostgreSQL and the real backend.
