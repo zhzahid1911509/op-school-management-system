@@ -28,7 +28,6 @@ try {
   await page.getByText('Class created.', {exact:true}).waitFor();
   await page.getByRole('button', {name:'Admissions', exact:true}).click();
   await page.getByLabel('Student birth registration number').fill('00000000000000042');
-  await page.getByRole('button', {name:'Use this student'}).click();
   const card = page.locator('section').filter({has:page.getByRole('heading', {name:'Class availability'})})
     .locator('article').filter({hasText:name});
   await card.getByRole('button', {name:'Apply', exact:true}).click();

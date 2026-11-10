@@ -10,7 +10,7 @@ internal static class ApiErrors
         }
         catch (BadHttpRequestException ex)
         {
-            await Write(context, ex.StatusCode, ex.Message.Contains("X-Student-Id")
+            await Write(context, ex.StatusCode, ex.StatusCode == 404 || ex.Message.Contains("X-Student-Id")
                 ? ex.Message : "Check the request URL, content type and JSON fields.");
         }
         catch (PostgresException ex) when (ex.SqlState is "A0400" or "A0403" or "A0404" or "A0409")

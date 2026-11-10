@@ -13,26 +13,28 @@ function savedStudent() {
 }
 
 export function App() {
-  const [student, setStudent] = useState(savedStudent);
-  const [draft, setDraft] = useState(student);
+  const [draft, setDraft] = useState(savedStudent);
+  const student = valid(draft) ? draft : "";
   const [notice, setNotice] = useState("");
   const [admin, setAdmin] = useState(false);
-  function select(event: FormEvent) {
-    event.preventDefault();
-    if (!valid(draft)) { setNotice("Enter exactly 17 digits, including any leading zeros."); return; }
-    setStudent(draft);
+  function edit(value: string) {
+    const digits = value.replace(/[^0-9]/g, "").slice(0, 17);
+    setDraft(digits);
     setNotice("");
-    try { localStorage.setItem(storageKey, draft); }
-    catch { setNotice("Browser storage is unavailable. Re-enter the number on your next visit."); }
+    try {
+      if (valid(digits)) localStorage.setItem(storageKey, digits);
+      else localStorage.removeItem(storageKey);
+    } catch { setNotice("Browser storage is unavailable. Re-enter the number on your next visit."); }
   }
   return <><header><div className="wrap"><strong>School Admission System</strong>
     <nav aria-label="Workspace"><button aria-pressed={!admin} onClick={() => setAdmin(false)}>Admissions</button>
     <button aria-pressed={admin} onClick={() => setAdmin(true)}>School admin</button></nav></div></header>
     <main className="wrap"><h1>{admin ? "School administration" : "Student admissions"}</h1>
-    <form className="identity" onSubmit={select}><label>Student birth registration number
-      <input value={draft} onChange={e => setDraft(e.target.value)} inputMode="numeric" maxLength={17}
-        placeholder="17-digit number" /></label><button>Use this student</button>
-      {student && <small>Selected student · {student}</small>}</form>
+    <div className="identity"><label>Student birth registration number
+      <input value={draft} onChange={e => edit(e.target.value)} inputMode="numeric" type="text"
+        aria-describedby="digit-count" placeholder="17-digit number" /></label>
+      <small id="digit-count" aria-live="polite">{draft.length}/17 digits · {student ? "Complete" :
+        (17 - draft.length) + " remaining"}</small></div>
     {notice && <p role="alert">{notice}</p>}
     <Workspace key={student} student={student} admin={admin} />
     </main></>;
@@ -114,13 +116,13 @@ function Workspace({student, admin}: {student: string; admin: boolean}) {
       <label>Total seats<input required type="number" min="1" max="2147483647" value={capacity} onChange={e => setCapacity(e.target.value)} /></label>
       <button disabled={busy}>Create class</button></form></section>}
     <section><h2>Class availability</h2>
-    {!admin && !student && <p>Select a student above to apply.</p>}
+    {!admin && !student && <p>Enter the full 17-digit number above to apply.</p>}
     {classes === null ? <p>{loadError ? "Class list unavailable." : "Loading classes…"}</p> :
       classes.length === 0 ? <p>No classes have been created yet.</p> :
       <div className="grid">{classes.map(c => {
         const hasSeat = history?.some(h => h.classId === c.id && (h.status === "CONFIRMED" ||
           (h.status === "HELD" && Date.parse(h.expiresAt) > now)));
-        return <article key={c.id}><h3>{c.name}</h3><dl>{Object.entries({
+        return <article key={c.id}><h3>{c.name}</h3><small>Class ID · {c.id}</small><dl>{Object.entries({
           Available: c.availableSeats, Held: c.heldSeats, Confirmed: c.confirmedSeats, Total: c.totalSeats
         }).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
         {!admin && <button disabled={busy || !student || !c.availableSeats || hasSeat} onClick={() => action(async () => {
@@ -138,7 +140,7 @@ function Workspace({student, admin}: {student: string; admin: boolean}) {
         history.map(h => {
           const seconds = Math.max(0, Math.ceil((Date.parse(h.expiresAt) - now) / 1000));
           const status = h.status === "HELD" && !seconds ? "EXPIRED" : h.status;
-          return <article key={h.holdId}><h3>{h.className}</h3><strong className="status">{status}</strong>
+          return <article key={h.holdId}><h3>{h.className}</h3><p>Application ID · {h.holdId}</p><strong className="status">{status}</strong>
             {status === "HELD" && <p>Time to pay · {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}</p>}
             {(status === "HELD" || status === "EXPIRED") && <div className="actions">
             <button disabled={busy || status !== "HELD"} onClick={() => action(async () => {

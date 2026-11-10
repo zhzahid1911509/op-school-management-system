@@ -72,6 +72,12 @@ The interface shows server conflicts even when another guardian claims the final
 | Confirmation at expiry while another applicant requests the seat | Either the original payment succeeds or the competing applicant obtains the released seat. Final occupied count is one. |
 | Autonomous worker | A direct read of the stored hold shows EXPIRED after its deadline without any admission API request. |
 | Chromium | Admin creates a class, guardian applies, refreshes, pays and sees a confirmed seat in the UI. |
-| Compose persistence | The same class UUID, hold UUID, confirmed count and history are recovered after down/up. |
+| Compose persistence | The same public class ID, public hold ID, confirmed count and history are recovered after down/up. |
 
 The Windows runner tests/acceptance.cmd executes these checks in an isolated project. tests/http_contract.py exercises HTTP concurrency. tests/browser/flow.mjs uses Chromium. tests/persistence.py stores the fixture identifiers independently of PostgreSQL and reads them back after the database and API containers have been recreated.
+
+## Live student input and public IDs
+
+The counter updates on each edit. The input keeps the first 17 ASCII digits and preserves leading zeros. Incomplete input clears the active student immediately, hides their applications, and disables applying. At 17 digits, the UI automatically loads that student's history and reflects HELD, CONFIRMED, CANCELLED and EXPIRED states. The existing three-second polling and deadline countdown continue for the active student.
+
+Classes display a public ID such as c_12345 and applications display one such as h_67890. API responses and creation Location headers use these codes. Existing records gain codes during startup. The database retains UUIDs for internal joins and legacy API paths. Each prefix has 90,000 possible suffixes (10000–99999). Allocation retries collisions under a per-prefix transaction lock, then searches for a free code. If the namespace is full, creation returns HTTP 409.

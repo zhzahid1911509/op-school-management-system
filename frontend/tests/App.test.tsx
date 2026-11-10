@@ -36,7 +36,6 @@ afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 function select(value: string) {
   fireEvent.change(screen.getByLabelText("Student birth registration number"), {target:{value}});
-  fireEvent.click(screen.getByText("Use this student"));
 }
 async function apply() {
   render(<App/>); select(student);
@@ -46,7 +45,8 @@ async function apply() {
 
 it("validates identity and confirms the selected student's hold", async () => {
   render(<App/>); select("123");
-  expect(screen.getByRole("alert").textContent).toContain("17 digits");
+  expect(screen.getByText(/3\/17 digits/).textContent).toContain("14 remaining");
+  expect(request.mock.calls.some(([path]) => path === "/me/holds")).toBe(false);
   select(student); fireEvent.click(await screen.findByText("Apply"));
   fireEvent.click(await screen.findByText("Pay admission fee"));
   await screen.findByText("CONFIRMED");
@@ -85,4 +85,15 @@ it("clears previous history when the guardian switches students", async () => {
   await screen.findByText("No applications for this student.");
   expect(screen.queryByText("HELD")).toBeNull();
   expect(localStorage.getItem("admission.student")).toBe("00000000000000002");
+});
+
+it("removes old history immediately on deletion and limits pasted input to 17 digits", async () => {
+  await apply(); select(student.slice(0, 16));
+  expect(screen.queryByText("My applications")).toBeNull();
+  expect(localStorage.getItem("admission.student")).toBeNull();
+  expect(screen.getByText(/16\/17 digits/)).toBeTruthy();
+  select("00-000 00000000000299");
+  const field = screen.getByLabelText("Student birth registration number") as HTMLInputElement;
+  expect(field.value).toBe("00000000000000002");
+  await screen.findByText("No applications for this student.");
 });

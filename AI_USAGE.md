@@ -11,3 +11,5 @@ Codex implemented milestone 4 React screens and component tests. Review found a 
 Codex added milestone 5 acceptance tests and reviewed their isolation. The earlier test database used tmpfs, which discarded data when the container was removed. A named volume now enables a real down/up persistence check. Docker and .NET were unavailable in the preparation environment, so the final live acceptance result must be recorded on a Docker host.
 
 For v0.5.1, Codex replaced the Python browser driver with the matching Node Playwright Core package after a Windows build paused downloading the Python wheel. The browser test still exercises the same admission flow.
+
+Codex implemented the live identity field and public IDs. Upgrade checks used a database populated by the previous schema, repeated the migration, checked stable links, and tested allocation of 300 distinct class codes in PGlite.

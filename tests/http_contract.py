@@ -60,6 +60,7 @@ class Contracts(unittest.TestCase):
         name = "Class 6 Morning " + uuid.uuid4().hex[:8]
         data = self.call(201, "POST", "/classes", payload={"name": name, "totalSeats": seats})
         self.assertEqual((name, seats), (data["name"], data["totalSeats"]))
+        self.assertRegex(data["id"], r"^c_[1-9][0-9]{4}$")
         return data["id"], name
 
     def test_class_and_confirmation(self):
@@ -72,6 +73,7 @@ class Contracts(unittest.TestCase):
                          ("name", "totalSeats", "heldSeats", "confirmedSeats", "availableSeats")))
         hold = self.call(201, "POST", path + "/holds", student=OWNER)
         self.assertEqual((cid, OWNER, "HELD"), (hold["classId"], hold["studentId"], hold["status"]))
+        self.assertRegex(hold["holdId"], r"^h_[1-9][0-9]{4}$")
         deadline = datetime.fromisoformat(hold["expiresAt"])
         self.assertGreater(deadline, datetime.now(timezone.utc))
         hp = "/holds/" + hold["holdId"]
