@@ -21,6 +21,8 @@ try {
   page.setDefaultTimeout(15000);
   const name = 'Morning shift ' + randomUUID().slice(0, 8);
   await page.goto('http://frontend');
+  await page.getByRole("heading", {name:"শিক্ষার্থী ভর্তি"}).waitFor();
+  await page.getByRole("button", {name:"English"}).click();
   await page.getByRole('button', {name:'School admin'}).click();
   await page.getByLabel('Class and shift').fill(name);
   await page.getByLabel('Total seats').fill('1');

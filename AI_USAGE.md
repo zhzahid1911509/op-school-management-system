@@ -13,3 +13,5 @@ Codex added milestone 5 acceptance tests and reviewed their isolation. The earli
 For v0.5.1, Codex replaced the Python browser driver with the matching Node Playwright Core package after a Windows build paused downloading the Python wheel. The browser test still exercises the same admission flow.
 
 Codex implemented the live identity field and public IDs. Upgrade checks used a database populated by the previous schema, repeated the migration, checked stable links, and tested allocation of 300 distinct class codes in PGlite.
+
+Codex added bilingual UI messages and tests for the Bangla default, numeral input, preference persistence, and switching languages during an active application or an unfinished admin form.

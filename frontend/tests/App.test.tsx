@@ -15,6 +15,7 @@ let deadline: number;
 
 beforeEach(() => {
   localStorage.clear();
+  localStorage.setItem("admission.language", "en");
   rooms = [{...room}]; rows = []; deadline = Date.now() + 60000;
   request.mockReset();
   request.mockImplementation(async (path, method = "GET", id = "", body) => {
@@ -96,4 +97,35 @@ it("removes old history immediately on deletion and limits pasted input to 17 di
   const field = screen.getByLabelText("Student birth registration number") as HTMLInputElement;
   expect(field.value).toBe("00000000000000002");
   await screen.findByText("No applications for this student.");
+});
+
+it("defaults to Bangla, accepts Bengali digits and keeps the student and feedback during a language switch", async () => {
+  localStorage.removeItem("admission.language");
+  render(<App/>);
+  expect(screen.getByRole("heading", {name:"শিক্ষার্থী ভর্তি"})).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("শিক্ষার্থীর জন্ম নিবন্ধন নম্বর"),
+    {target:{value:"০০০০০০০০০০০০০০০০১"}});
+  await screen.findByText("এই শিক্ষার্থীর কোনো আবেদন নেই।");
+  expect(localStorage.getItem("admission.student")).toBe(student);
+  expect(screen.getByText(/১৭\/১৭ সংখ্যা/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", {name:"আবেদন করুন"}));
+  await screen.findByText("আসন সংরক্ষিত হয়েছে। নিচে ফি দেওয়ার বাকি সময় দেখুন।");
+  fireEvent.click(screen.getByRole("button", {name:"English"}));
+  await screen.findByText("HELD");
+  expect(screen.getByText("Seat held. Your payment deadline is shown below.")).toBeTruthy();
+  cleanup(); render(<App/>);
+  await screen.findByText("HELD");
+  expect(document.documentElement.lang).toBe("en");
+  fireEvent.click(screen.getByRole("button", {name:"বাংলা"}));
+  expect(document.documentElement.lang).toBe("bn");
+});
+
+it("translates validation errors and preserves the admin form draft", async () => {
+  render(<App/>); fireEvent.click(screen.getByText("School admin"));
+  fireEvent.change(screen.getByLabelText("Class and shift"), {target:{value:"ষষ্ঠ শ্রেণি"}});
+  fireEvent.click(screen.getByRole("button", {name:"Create class"}));
+  await screen.findByRole("alert");
+  fireEvent.click(screen.getByRole("button", {name:"বাংলা"}));
+  expect(screen.getByRole("alert").textContent).toContain("ধনাত্মক পূর্ণসংখ্যা");
+  expect((screen.getByLabelText("শ্রেণি ও শিফট") as HTMLInputElement).value).toBe("ষষ্ঠ শ্রেণি");
 });

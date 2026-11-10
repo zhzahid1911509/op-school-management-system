@@ -12,7 +12,7 @@ Guardians can reserve a seat in a class and shift, pay the simulated admission f
 
 ## Try the workflow
 
-In **School admin**, create **Class 6 – Morning Shift** with one seat. In **Admissions**, enter `00000000000000001`, wait for the 17/17 counter, and click **Apply**. Refresh or reopen the page to recover the hold. **Pay admission fee** converts it to a confirmed admission. To test cancellation, cancel before confirming, then reapply.
+The first visit opens in Bangla. Choose **English** for the following walkthrough. In **School admin**, create **Class 6 – Morning Shift** with one seat. In **Admissions**, enter `00000000000000001`, wait for the 17/17 counter, and click **Apply**. Refresh or reopen the page to recover the hold. **Pay admission fee** converts it to a confirmed admission. To test cancellation, cancel before confirming, then reapply.
 
 For a short expiry demo, place `HOLD_DURATION_SECONDS=10` in a root .env file and run `docker compose up -d --build`. A new unpaid hold should expire, disable payment and release the seat. Seat counts refresh every few seconds. The default duration is 600 seconds.
 
@@ -34,7 +34,7 @@ On Windows with Docker Desktop running, run from the project root:
 tests\acceptance.cmd
 ```
 
-The script creates an isolated Compose project with two API processes, separate ports, one database, and a test frontend. It runs seven frontend component tests, eight HTTP tests, SQL lifecycle checks, autonomous worker expiry, a real Chromium admission flow, and a database restart check. It stops at the first failure and prints diagnostic and cleanup commands. The test stack has no published host ports. Its database volume is removed after success.
+The script creates an isolated Compose project with two API processes, separate ports, one database, and a test frontend. It runs nine frontend component tests, eight HTTP tests, SQL lifecycle checks, autonomous worker expiry, a real Chromium admission flow, and a database restart check. It stops at the first failure and prints diagnostic and cleanup commands. The test stack has no published host ports. Its database volume is removed after success.
 
 On Linux or macOS use the following sequence. Run commands in order and inspect any failure before continuing.
 
