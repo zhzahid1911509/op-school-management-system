@@ -1,17 +1,15 @@
-# AI usage
+# AI Usage
 
-OpenAI Codex drafted the .NET and React foundation, Docker configuration, and documentation. The initial verification plan expected Docker to be present. A command availability check showed that this environment lacks both Docker and the .NET SDK. Live stack verification therefore remains pending; README.md includes reproducible checks for the target machine.
+**Tool:** OpenAI ChatGPT / Codex.
 
-Codex implemented milestone 2 SQL, the background service, and database checks. During review, the worker design was refined to lock the parent class before updating applications, matching the lock order used by reservations and confirmations.
+**Where I used it:** AI assisted with planning and generated substantial parts of the ASP.NET Core API, PostgreSQL reservation functions, React interface, Docker setup, automated tests and documentation. This is an AI-assisted project; I do not present all generated code as independently handwritten work.
 
-Codex implemented the eight endpoint handlers, HTTP error mapping and contract checks. The release was prepared against the v0.2.0 baseline. The available runtime lacks Docker and the .NET SDK, so the HTTP tests require execution on the target machine.
+**My contribution:** I supplied the assignment and directed the implementation in stages. I ran local setup commands, reported Git/Docker and acceptance-build problems, and requested corrections. I also specified live birth-registration feedback, the 17-digit counter and short public IDs, and checked requirement coverage for configurable URLs, hold duration and the Bangla-default bilingual interface.
 
-Codex implemented milestone 4 React screens and component tests. Review found a test mock shared mutable class objects with the UI, which could let the availability test pass without a network refresh. Returning snapshots fixed the test and made it exercise periodic polling.
+**Mistakes and corrections:**
 
-Codex added milestone 5 acceptance tests and reviewed their isolation. The earlier test database used tmpfs, which discarded data when the container was removed. A named volume now enables a real down/up persistence check. Docker and .NET were unavailable in the preparation environment, so the final live acceptance result must be recorded on a Docker host.
+- The AI initially planned verification as though Docker and the .NET SDK were available in its environment. Tool checks showed they were absent, so live acceptance was explicitly left pending rather than reported as passed.
+- AI-assisted review found that a frontend test mock shared mutable objects with the UI, allowing a misleading polling result. Returning independent snapshots corrected the test. Review also found that a temporary database volume could not demonstrate persistence after container removal; the test setup was changed to a named volume.
+- My Windows acceptance run stalled while downloading the Python Playwright package. I reported the log; the AI-assisted revision switched to a matching Node Playwright Core driver using the preinstalled browser image.
 
-For v0.5.1, Codex replaced the Python browser driver with the matching Node Playwright Core package after a Windows build paused downloading the Python wheel. The browser test still exercises the same admission flow.
-
-Codex implemented the live identity field and public IDs. Upgrade checks used a database populated by the previous schema, repeated the migration, checked stable links, and tested allocation of 300 distinct class codes in PGlite.
-
-Codex added bilingual UI messages and tests for the Bangla default, numeral input, preference persistence, and switching languages during an active application or an unfinished admin form.
+**Verification boundary:** Frontend tests and the production build passed in the preparation environment. Real PostgreSQL concurrency, backend compilation and the complete Docker acceptance run still need a successful target-machine run; the presence of test code alone is not a passing result.
